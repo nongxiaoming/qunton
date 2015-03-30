@@ -1,8 +1,7 @@
 #ifndef __SENSOR_H
 #define __SENSOR_H
-#include "stdint.h"
-#include "FreeRTOS.h"
-#include "queue.h"
+#include <stdint.h>
+#include <rtos.h>
 
 //! Pios sensor structure for generic gyro data
 struct sensor_gyro_data {
@@ -47,7 +46,7 @@ enum sensor_type
 //! Structure to register the data
 struct sensor_registration {
 	enum sensor_type type;
-	xQueueHandle queue;
+	os_queue_t queue;
 };
 
 //! Initialize the PIOS_SENSORS interface

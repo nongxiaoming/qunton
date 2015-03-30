@@ -2,7 +2,7 @@
 
 
 //! The list of queue handles
-static  xQueueHandle queues[SENSOR_LAST];
+static  os_queue_t queues[SENSOR_LAST];
 static int32_t max_gyro_rate;
 
 //! Initialize the sensors interface
@@ -15,7 +15,7 @@ int32_t SENSORS_Init()
 }
 
 //! Register a sensor with the PIOS_SENSORS interface
-int32_t SENSORS_Register(enum sensor_type type, xQueueHandle queue)
+int32_t SENSORS_Register(enum sensor_type type, os_queue_t queue)
 {
 	if(queues[type] != NULL)
 		return -1;
@@ -26,7 +26,7 @@ int32_t SENSORS_Register(enum sensor_type type, xQueueHandle queue)
 }
 
 //! Get the data queue for a sensor type
- xQueueHandle SENSORS_GetQueue(enum sensor_type type)
+ os_queue_t SENSORS_GetQueue(enum sensor_type type)
 {
 	if (type >= SENSOR_LAST)
 		return NULL;
