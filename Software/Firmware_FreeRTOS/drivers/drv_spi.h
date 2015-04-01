@@ -1,8 +1,6 @@
 #ifndef __DRV_SPI_H
 #define __DRV_SPI_H
-
-#include "stm32f4xx.h"
-#include "FreeRTOS.h"
+#include "rtos.h"
 
 
 /* SPI Hardware Device */

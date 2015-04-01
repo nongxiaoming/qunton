@@ -1,18 +1,17 @@
-
-
+#include "stm32f4xx.h"
 #include "drv_spi.h"
 
 #define SPI_MAX_BLOCK_PIO	128
 
-static bool PIOS_SPI_validate(struct pios_spi_dev *com_dev)
+static bool_t SPI_validate(struct spi_dev *com_dev)
 {
 	/* Should check device magic here */
-	return (true);
+	return (TRUE);
 }
 
-static struct pios_spi_dev *PIOS_SPI_alloc(void)
+static struct spi_dev *SPI_alloc(void)
 {
-	return (PIOS_malloc(sizeof(struct pios_spi_dev)));
+	return (OS_Malloc(sizeof(struct spi_dev)));
 }
 
 /**
@@ -20,22 +19,22 @@ static struct pios_spi_dev *PIOS_SPI_alloc(void)
 * \param[in] mode currently only mode 0 supported
 * \return < 0 if initialisation failed
 */
-int32_t PIOS_SPI_Init(uint32_t *spi_id, const struct pios_spi_cfg *cfg)
+int32_t SPI_Init(uint32_t *spi_id, const struct spi_cfg *cfg)
 {
 	uint32_t	init_ssel = 0;
 
-	PIOS_Assert(spi_id);
-	PIOS_Assert(cfg);
+	OS_Assert(spi_id);
+	OS_Assert(cfg);
 
-	struct pios_spi_dev *spi_dev;
+	struct spi_dev *spi_dev;
 
-	spi_dev = (struct pios_spi_dev *) PIOS_SPI_alloc();
+	spi_dev = (struct spi_dev *) SPI_alloc();
 	if (!spi_dev) goto out_fail;
 
 	/* Bind the configuration to the device instance */
 	spi_dev->cfg = cfg;
 
-	spi_dev->busy = PIOS_Semaphore_Create();
+	spi_dev->busy = OS_SemaCreate();
 
 	/* Disable callback function */
 	spi_dev->callback = NULL;
@@ -59,14 +58,14 @@ int32_t PIOS_SPI_Init(uint32_t *spi_id, const struct pios_spi_cfg *cfg)
 
 	case SPI_NSS_Hard:
 		/* only legal for single-slave config */
-		PIOS_Assert(spi_dev->cfg->slave_count == 1);
+		OS_Assert(spi_dev->cfg->slave_count == 1);
 		init_ssel = 1;
 		SPI_SSOutputCmd(spi_dev->cfg->regs, (spi_dev->cfg->init.SPI_Mode == SPI_Mode_Master) ? ENABLE : DISABLE);
 		/* FIXME: Should this also call SPI_SSOutputCmd()? */
 		break;
 
 	default:
-		PIOS_Assert(0);
+		OS_Assert(0);
 	}
 
 	/* Initialize the GPIO pins */
@@ -145,25 +144,25 @@ out_fail:
  * \param[in] spi SPI number (0 or 1)
  * \param[in] spi_prescaler configures the SPI speed:
  * <UL>
- *   <LI>PIOS_SPI_PRESCALER_2: sets clock rate 27.7~ nS @ 72 MHz (36 MBit/s) (only supported for spi==0, spi1 uses 4 instead)
- *   <LI>PIOS_SPI_PRESCALER_4: sets clock rate 55.5~ nS @ 72 MHz (18 MBit/s)
- *   <LI>PIOS_SPI_PRESCALER_8: sets clock rate 111.1~ nS @ 72 MHz (9 MBit/s)
- *   <LI>PIOS_SPI_PRESCALER_16: sets clock rate 222.2~ nS @ 72 MHz (4.5 MBit/s)
- *   <LI>PIOS_SPI_PRESCALER_32: sets clock rate 444.4~ nS @ 72 MHz (2.25 MBit/s)
- *   <LI>PIOS_SPI_PRESCALER_64: sets clock rate 888.8~ nS @ 72 MHz (1.125 MBit/s)
- *   <LI>PIOS_SPI_PRESCALER_128: sets clock rate 1.7~ nS @ 72 MHz (0.562 MBit/s)
- *   <LI>PIOS_SPI_PRESCALER_256: sets clock rate 3.5~ nS @ 72 MHz (0.281 MBit/s)
+ *   <LI>SPI_PRESCALER_2: sets clock rate 27.7~ nS @ 72 MHz (36 MBit/s) (only supported for spi==0, spi1 uses 4 instead)
+ *   <LI>SPI_PRESCALER_4: sets clock rate 55.5~ nS @ 72 MHz (18 MBit/s)
+ *   <LI>SPI_PRESCALER_8: sets clock rate 111.1~ nS @ 72 MHz (9 MBit/s)
+ *   <LI>SPI_PRESCALER_16: sets clock rate 222.2~ nS @ 72 MHz (4.5 MBit/s)
+ *   <LI>SPI_PRESCALER_32: sets clock rate 444.4~ nS @ 72 MHz (2.25 MBit/s)
+ *   <LI>SPI_PRESCALER_64: sets clock rate 888.8~ nS @ 72 MHz (1.125 MBit/s)
+ *   <LI>SPI_PRESCALER_128: sets clock rate 1.7~ nS @ 72 MHz (0.562 MBit/s)
+ *   <LI>SPI_PRESCALER_256: sets clock rate 3.5~ nS @ 72 MHz (0.281 MBit/s)
  * </UL>
  * \return 0 if no error
  * \return -1 if disabled SPI port selected
  * \return -3 if invalid spi_prescaler selected
  */
-int32_t PIOS_SPI_SetClockSpeed(uint32_t spi_id, uint32_t spi_speed)
+int32_t SPI_SetClockSpeed(uint32_t spi_id, uint32_t spi_speed)
 {
-	struct pios_spi_dev *spi_dev = (struct pios_spi_dev *)spi_id;
+	struct spi_dev *spi_dev = (struct spi_dev *)spi_id;
 
-	bool valid = PIOS_SPI_validate(spi_dev);
-	PIOS_Assert(valid);
+	bool valid = SPI_validate(spi_dev);
+	OS_Assert(valid);
 
 	SPI_InitTypeDef SPI_InitStructure;
 
@@ -207,7 +206,7 @@ int32_t PIOS_SPI_SetClockSpeed(uint32_t spi_id, uint32_t spi_speed)
 	/* Write back the new configuration */
 	SPI_Init(spi_dev->cfg->regs, &SPI_InitStructure);
 
-	PIOS_SPI_TransferByte(spi_id, 0xFF);
+	SPI_TransferByte(spi_id, 0xFF);
 
 	//return set speed
 	return spiBusClock / spi_prescaler;
@@ -219,14 +218,14 @@ int32_t PIOS_SPI_SetClockSpeed(uint32_t spi_id, uint32_t spi_speed)
  * \return 0 if no error
  * \return -1 if timeout before claiming semaphore
  */
-int32_t PIOS_SPI_ClaimBus(uint32_t spi_id)
+int32_t SPI_ClaimBus(uint32_t spi_id)
 {
-	struct pios_spi_dev *spi_dev = (struct pios_spi_dev *)spi_id;
+	struct spi_dev *spi_dev = (struct spi_dev *)spi_id;
 
-	bool valid = PIOS_SPI_validate(spi_dev);
-	PIOS_Assert(valid)
+	bool valid = SPI_validate(spi_dev);
+	OS_Assert(valid)
 
-	if (PIOS_Semaphore_Take(spi_dev->busy, 65535) != true)
+	if (OS_SemapTake(spi_dev->busy, 65535) != true)
 		return -1;
 
 	return 0;
@@ -239,12 +238,12 @@ int32_t PIOS_SPI_ClaimBus(uint32_t spi_id)
  * \return 0 if no error
  * \return -1 if timeout before claiming semaphore
  */
-int32_t PIOS_SPI_ClaimBusISR(uint32_t spi_id, bool *woken)
+int32_t SPI_ClaimBusISR(uint32_t spi_id, bool *woken)
 {
-	struct pios_spi_dev *spi_dev = (struct pios_spi_dev *)spi_id;
+	struct spi_dev *spi_dev = (struct spi_dev *)spi_id;
 
-	bool valid = PIOS_SPI_validate(spi_dev);
-	PIOS_Assert(valid)
+	bool valid = SPI_validate(spi_dev);
+	OS_Assert(valid)
 
 	if (PIOS_Semaphore_Take_FromISR(spi_dev->busy, woken) != true)
 		return -1;
@@ -258,12 +257,12 @@ int32_t PIOS_SPI_ClaimBusISR(uint32_t spi_id, bool *woken)
  * \param[in] spi SPI number (0 or 1)
  * \return 0 if no error
  */
-int32_t PIOS_SPI_ReleaseBus(uint32_t spi_id)
+int32_t SPI_ReleaseBus(uint32_t spi_id)
 {
-	struct pios_spi_dev *spi_dev = (struct pios_spi_dev *)spi_id;
+	struct spi_dev *spi_dev = (struct spi_dev *)spi_id;
 
-	bool valid = PIOS_SPI_validate(spi_dev);
-	PIOS_Assert(valid)
+	bool valid = SPI_validate(spi_dev);
+	OS_Assert(valid)
 
 	PIOS_Semaphore_Give(spi_dev->busy);
 
@@ -276,14 +275,14 @@ int32_t PIOS_SPI_ReleaseBus(uint32_t spi_id)
  * \param[in] pointer which receives if a task has been woken
  * \return 0 if no error
  */
-int32_t PIOS_SPI_ReleaseBusISR(uint32_t spi_id, bool *woken)
+int32_t SPI_ReleaseBusISR(uint32_t spi_id, bool *woken)
 {
 	struct pios_spi_dev *spi_dev = (struct pios_spi_dev *)spi_id;
 
 	bool valid = PIOS_SPI_validate(spi_dev);
-	PIOS_Assert(valid)
+	OS_Assert(valid)
 
-	PIOS_Semaphore_Give_FromISR(spi_dev->busy, woken);
+	OS_Semaphore_Give_FromISR(spi_dev->busy, woken);
 
 	return 0;
 }
@@ -294,13 +293,13 @@ int32_t PIOS_SPI_ReleaseBusISR(uint32_t spi_id, bool *woken)
 * \param[in] pin_value 0 or 1
 * \return 0 if no error
 */
-int32_t PIOS_SPI_RC_PinSet(uint32_t spi_id, uint32_t slave_id, uint8_t pin_value)
+int32_t SPI_RC_PinSet(uint32_t spi_id, uint32_t slave_id, uint8_t pin_value)
 {
 	struct pios_spi_dev *spi_dev = (struct pios_spi_dev *)spi_id;
 
-	bool valid = PIOS_SPI_validate(spi_dev);
-	PIOS_Assert(valid)
-	PIOS_Assert(slave_id <= spi_dev->cfg->slave_count)
+	bool valid = SPI_validate(spi_dev);
+	OS_Assert(valid)
+	OS_Assert(slave_id <= spi_dev->cfg->slave_count)
 
 	/* XXX multi-slave support? */
 	if (pin_value) {
@@ -317,12 +316,12 @@ int32_t PIOS_SPI_RC_PinSet(uint32_t spi_id, uint32_t slave_id, uint8_t pin_value
 * \param[in] spi SPI number (0 or 1)
 * \param[in] b the byte which should be transfered
 */
-int32_t PIOS_SPI_TransferByte(uint32_t spi_id, uint8_t b)
+int32_t SPI_TransferByte(uint32_t spi_id, uint8_t b)
 {
-	struct pios_spi_dev *spi_dev = (struct pios_spi_dev *)spi_id;
+	struct spi_dev *spi_dev = (struct pios_spi_dev *)spi_id;
 
-	bool valid = PIOS_SPI_validate(spi_dev);
-	PIOS_Assert(valid)
+	bool valid = SPI_validate(spi_dev);
+	OS_Assert(valid)
 
 //	uint8_t dummy;
 	uint8_t rx_byte;
@@ -525,11 +524,11 @@ static int32_t SPI_DMA_TransferBlock(uint32_t spi_id, const uint8_t *send_buffer
 */
 static int32_t SPI_PIO_TransferBlock(uint32_t spi_id, const uint8_t *send_buffer, uint8_t *receive_buffer, uint16_t len)
 {
-	struct pios_spi_dev *spi_dev = (struct pios_spi_dev *)spi_id;
+	struct spi_dev *spi_dev = (struct spi_dev *)spi_id;
 	uint8_t b;
 
-	bool valid = PIOS_SPI_validate(spi_dev);
-	PIOS_Assert(valid)
+	bool valid = OS_SPI_validate(spi_dev);
+	OS_Assert(valid)
 
 	/* Exit if ongoing transfer */
 	if (DMA_GetCurrDataCounter(spi_dev->cfg->dma.rx.channel)) {
@@ -577,13 +576,13 @@ static int32_t SPI_PIO_TransferBlock(uint32_t spi_id, const uint8_t *send_buffer
 * \param[in] len number of bytes which should be transfered
 * \param[in] callback pointer to callback function which will be executed
 * from DMA channel interrupt once the transfer is finished.
-* If NULL, no callback function will be used, and PIOS_SPI_TransferBlock() will
+* If NULL, no callback function will be used, and SPI_TransferBlock() will
 * block until the transfer is finished.
 * \return >= 0 if no error during transfer
 * \return -1 if disabled SPI port selected
 * \return -3 if function has been called during an ongoing DMA transfer
 */
-int32_t PIOS_SPI_TransferBlock(uint32_t spi_id, const uint8_t *send_buffer, uint8_t *receive_buffer, uint16_t len, void *callback)
+int32_t SPI_TransferBlock(uint32_t spi_id, const uint8_t *send_buffer, uint8_t *receive_buffer, uint16_t len, void *callback)
 {
 	if (callback || len > SPI_MAX_BLOCK_PIO) {
 		return SPI_DMA_TransferBlock(spi_id, send_buffer, receive_buffer, len, callback);
@@ -599,12 +598,12 @@ int32_t PIOS_SPI_TransferBlock(uint32_t spi_id, const uint8_t *send_buffer, uint
 * \return -2 if unsupported SPI port selected
 * \return -3 if function has been called during an ongoing DMA transfer
 */
-int32_t PIOS_SPI_Busy(uint32_t spi_id)
+int32_t SPI_Busy(uint32_t spi_id)
 {
-	struct pios_spi_dev *spi_dev = (struct pios_spi_dev *)spi_id;
+	struct spi_dev *spi_dev = (struct spi_dev *)spi_id;
 
-	bool valid = PIOS_SPI_validate(spi_dev);
-	PIOS_Assert(valid)
+	bool valid = SPI_validate(spi_dev);
+	OS_Assert(valid)
 
 	/* DMA buffer has data or SPI transmit register not empty or SPI is busy*/
 	if (DMA_GetCurrDataCounter(spi_dev->cfg->dma.rx.channel) ||
@@ -616,12 +615,12 @@ int32_t PIOS_SPI_Busy(uint32_t spi_id)
 	return (0);
 }
 
-void PIOS_SPI_IRQ_Handler(uint32_t spi_id)
+void SPI_IRQ_Handler(uint32_t spi_id)
 {
-	struct pios_spi_dev *spi_dev = (struct pios_spi_dev *)spi_id;
+	struct spi_dev *spi_dev = (struct spi_dev *)spi_id;
 
-	bool valid = PIOS_SPI_validate(spi_dev);
-	PIOS_Assert(valid)
+	bool_t valid = SPI_validate(spi_dev);
+	OS_Assert(valid)
 
 	// FIXME XXX Only RX channel or better clear flags for both channels?
 	DMA_ClearFlag(spi_dev->cfg->dma.rx.channel, spi_dev->cfg->dma.irq.flags);
