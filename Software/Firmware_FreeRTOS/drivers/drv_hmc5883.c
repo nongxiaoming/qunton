@@ -11,11 +11,11 @@
 
 struct hmc5883_dev {
 	struct hmc5883_cfg *cfg;
-	xQueueHandle queue;
-	xTaskHandle  task;
-	struct pios_semaphore *data_ready_sema;
+	os_queue_t queue;
+	os_task_t  task;
+	os_sema_t  data_ready_sema;
 	enum hmc5883_orientation orientation;
-	bool inited;
+	bool_t inited;
 };
 
 /* Local Variables */
@@ -33,16 +33,16 @@ static struct hmc5883_dev * HMC5883_alloc(void)
 {
 	struct hmc5883_dev *hmc5883_dev;
 	
-	hmc5883_dev = (struct hmc5883_dev *)pvPortMalloc(sizeof(*hmc5883_dev));
+	hmc5883_dev = (struct hmc5883_dev *)OS_Malloc(sizeof(*hmc5883_dev));
 	if (!hmc5883_dev) return (NULL);
 	
 	
-	hmc5883_dev->queue = xQueueCreate(HMC5883_MAX_DOWNSAMPLE, sizeof(struct sensor_mag_data));
+	hmc5883_dev->queue = OS_QueueCreate(HMC5883_MAX_DOWNSAMPLE, sizeof(struct sensor_mag_data));
 	if (hmc5883_dev->queue == NULL) {
-		vPortFree(hmc5883_dev);
+		OS_Free(hmc5883_dev);
 		return NULL;
 	}
-
+  
 	return hmc5883_dev;
 }
 
@@ -54,8 +54,8 @@ static int32_t HMC5883_Validate(struct hmc5883_dev *dev)
 {
 	if (dev == NULL) 
 		return -1;
-	if (dev->inited == false)
-		return -3;
+	if (dev->inited == FALSE)
+		return -2;
 	return 0;
 }
 
@@ -74,10 +74,10 @@ int32_t HMC5883_Init(struct hmc5883_cfg *cfg)
 
 	/* check if we are using an irq line */
 	if (cfg->exti_cfg != NULL) {
-		PIOS_EXTI_Init(cfg->exti_cfg);
+		EXTI_Init(cfg->exti_cfg);
 
 		vSemaphoreCreateBinary(dev->data_ready_sema);
-		PIOS_Assert(dev->data_ready_sema != NULL);
+		OS_Assert(dev->data_ready_sema != NULL);
 	}
 	else {
 		dev->data_ready_sema = NULL;
@@ -90,7 +90,7 @@ int32_t HMC5883_Init(struct hmc5883_cfg *cfg)
 
 	 xTaskCreate(HMC5883_Task, "hmc5883", HMC5883_TASK_STACK_BYTES, NULL, HMC5883_TASK_PRIORITY,dev->task);
 
-	PIOS_Assert(dev->task != NULL);
+	OS_Assert(dev->task != NULL);
 
 	return 0;
 }
@@ -369,7 +369,7 @@ portBASE_TYPE HMC5883_IRQHandler(void)
 static void HMC5883_Task(void *parameters)
 {
 	while (HMC5883_Validate(dev) != 0) {
-		vTaskDelay(100);
+		OS_Delay(100);
 	}
 
 	uint32_t sample_delay;
@@ -404,7 +404,7 @@ static void HMC5883_Task(void *parameters)
 	while (1) {
 		if ((dev->data_ready_sema != NULL) && (dev->cfg->Mode == HMC5883_MODE_CONTINUOUS)) {
 			if (xSemaphoreTake(dev->data_ready_sema, portMAX_DELAY) != pdTRUE) {
-				vTaskDelay(100);
+				OS_Delay(100);
 				continue;
 			}
 		} else {
