@@ -36,13 +36,13 @@ enum conversion_type {
 struct ms5611_dev {
 	struct ms5611_cfg * cfg;
 	xTaskHandle task;
-	xQueueHandle queue;
+	os_queue_t queue;
 
 	int64_t pressure_unscaled;
 	int64_t temperature_unscaled;
 	uint16_t calibration[6];
 	enum conversion_type current_conversion_type;
-  bool inited;
+  bool_t inited;
 	xSemaphoreHandle busy;
 };
 
@@ -55,7 +55,7 @@ static struct ms5611_dev * MS5611_alloc(void)
 {
 	struct ms5611_dev *ms5611_dev;
 
-	ms5611_dev = (struct ms5611_dev *)pvPortMalloc(sizeof(struct ms5611_dev));
+	ms5611_dev = (struct ms5611_dev *)OS_Malloc(sizeof(struct ms5611_dev));
 	if (!ms5611_dev)
 		return (NULL);
 
@@ -63,13 +63,13 @@ static struct ms5611_dev * MS5611_alloc(void)
 
 	ms5611_dev->queue = xQueueCreate(1, sizeof(struct sensor_baro_data));
 	if (ms5611_dev->queue == NULL) {
-		vPortFree(ms5611_dev);
+		OS_Free(ms5611_dev);
 		return NULL;
 	}
 
 	vSemaphporeCreate(ms5611_dev->busy);
 
-	PIOS_Assert(ms5611_dev->busy != NULL);
+	OS_Assert(ms5611_dev->busy != NULL);
 
 	return ms5611_dev;
 }
@@ -115,7 +115,7 @@ int32_t MS5611_Init(struct ms5611_cfg *cfg, int32_t i2c_device)
 
 	xTaskCreate(MS5611_Task, "pios_ms5611", MS5611_TASK_STACK_BYTES, NULL, MS5611_TASK_PRIORITY,dev->task);
 	
-	PIOS_Assert(dev->task != NULL);
+	OS_Assert(dev->task != NULL);
 
 	return 0;
 }
@@ -127,7 +127,7 @@ int32_t MS5611_Init(struct ms5611_cfg *cfg, int32_t i2c_device)
  */
 static int32_t MS5611_ClaimDevice(void)
 {
-	PIOS_Assert(MS5611_Validate(dev) == 0);
+	OS_Assert(MS5611_Validate(dev) == 0);
 
 	return xSemaphoreTake(dev->busy, portMAX_DELAY) == pdTRUE ? 0 : 1;
 }
@@ -138,7 +138,7 @@ static int32_t MS5611_ClaimDevice(void)
  */
 static int32_t MS5611_ReleaseDevice(void)
 {
-	PIOS_Assert(MS5611_Validate(dev) == 0);
+	OS_Assert(MS5611_Validate(dev) == 0);
 
 	return xSemaphoreGive(dev->busy) == pdTRUE ? 0 : 1;
 }
