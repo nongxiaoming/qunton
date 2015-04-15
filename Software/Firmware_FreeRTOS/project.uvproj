@@ -455,6 +455,26 @@
               <FileType>1</FileType>
               <FilePath>.\drivers\drv_ms5611.c</FilePath>
             </File>
+            <File>
+              <FileName>drv_adxl345.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\drivers\drv_adxl345.c</FilePath>
+            </File>
+            <File>
+              <FileName>drv_l3gd20.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\drivers\drv_l3gd20.c</FilePath>
+            </File>
+            <File>
+              <FileName>drv_mpu6000.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\drivers\drv_mpu6000.c</FilePath>
+            </File>
+            <File>
+              <FileName>drv_spi.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\drivers\drv_spi.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

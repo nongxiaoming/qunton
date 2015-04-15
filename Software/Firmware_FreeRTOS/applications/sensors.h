@@ -53,7 +53,7 @@ struct sensor_registration {
 int32_t SENSORS_Init(void);
 
 //! Register a sensor with the PIOS_SENSORS interface
-int32_t SENSORS_Register(enum sensor_type type, xQueueHandle queue);
+int32_t SENSORS_Register(enum sensor_type type, os_queue_t queue);
 
 //! Get the data queue for a sensor type
 struct xQueueHandle PIOS_SENSORS_GetQueue(enum sensor_type type);
