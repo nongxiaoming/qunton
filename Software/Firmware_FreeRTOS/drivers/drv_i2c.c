@@ -141,7 +141,6 @@ static void NVIC_Configuration(void)
 }    
 static void DMA_Configuration(void)
 {  
-  
 	  /* Enable I2C3 DMA */
   RCC_AHB1PeriphClockCmd(I2C3_DMA_CLK, ENABLE);
   /* I2C3 Common Stream Configuration */
